@@ -71,7 +71,6 @@ def custom_kalman1D(observations):
     #  Predict
         xhatminus[k] = xhat[k-1]
         Pminus[k] = P[k-1] + Q
-
         #  Update
         K[k] = Pminus[k] / (Pminus[k] + R)
         xhat[k] = xhatminus[k] + K[k] * (observations[k] - xhatminus[k])
@@ -104,7 +103,6 @@ def main():
     ]
 
     device_tag=serial.Serial("COM14",  115200)
-    #  device_tag=None
     #  draw a whole dark image
     image = np.zeros((720, 720, 1),  np.uint8)
     # draw the centers

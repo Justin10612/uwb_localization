@@ -9,14 +9,12 @@ from std_msgs.msg import String
 class UWBInit(Node):
 
     baudRate = 112500
-
-    # Serial Port
-    # serial_arduino = serial.Serial('COM1', baudRate, timeout=1)
-    serial_uwb0 = serial.Serial('ttyACM0', baudRate, timeout=1)
-    serial_uwb1 = serial.Serial('ttyACM2', baudRate, timeout=1)
-    serial_uwb2 = serial.Serial('ttyACM1', baudRate, timeout=1)
     distList = []
-
+    # Serial Port
+    serial_uwb0 = serial.Serial('/dev/ttyACM1', baudRate, timeout=1)
+    serial_uwb1 = serial.Serial('/dev/ttyACM2', baudRate, timeout=1)
+    serial_uwb2 = serial.Serial('/dev/ttyACM0', baudRate, timeout=1)
+    
     def __init__(self):
         super().__init__('uwb_init')
         # Subscriber
@@ -24,46 +22,39 @@ class UWBInit(Node):
         self.mode_sub_
         # Publisher
         self.pose_pub_ = self.create_publisher(Vector3, 'uwb_distance', 10)
-        # Serial Port
-        serial.Serial('ttyACM0', 115200, timeout=1)
         
     def mode_callback(self, msg):
-        # Variable
-        # Receive Mode
+        # Receive Msg
         robot_mode = msg.data
         # Receieve Dis Data
         dis_msgs = Vector3()
+        self.get_logger().info('UWB_dist Start')
         try:
             while True:
-                self.distList = []
                 i=0
-                self.send_and_receive(i, self.serial_uwb0)
-                dis_msgs.x = self.distList[i]
+                dis_msgs.x = send_and_receive(i, self.serial_uwb0)
                 i=1
-                self.send_and_receive(i, self.serial_uwb1)
-                dis_msgs.y = self.distList[i]
+                dis_msgs.y = send_and_receive(i, self.serial_uwb1)
                 i=2
-                self.send_and_receive(i, self.serial_uwb2)
-                dis_msgs.z = self.distList[i]
+                dis_msgs.z = send_and_receive(i, self.serial_uwb2)
                 self.pose_pub_.publish(dis_msgs)
         except KeyboardInterrupt:
             self.serial_uwb0.close()
             self.serial_uwb1.close()
-            self.serial_uwb2.close()     
+            self.serial_uwb2.close()
+            print("Program terminated by user.")  
         
                 
-
-    def send_and_receive(self, uwbNum, serial_receive):
+def send_and_receive(uwbNum, serial_receive):
+    data = serial_receive.readline()
+    dis = data.decode('utf-8').strip()
+    while(dis==''):
         data = serial_receive.readline()
         dis = data.decode('utf-8').strip()
-        k=0
-        while(dis==''):
-            data = serial_receive.readline()
-            dis = data.decode('utf-8').strip()
-            print('dis=' + str(dis))
-            print('Wating:'+str(uwbNum))
-            pass
-        self.distList.append(dis)
+        # print('dis=' + str(dis))
+        # print('No Data, Wating:'+str(uwbNum))
+        pass
+    return float(dis)
         
 
 def main(args=None):

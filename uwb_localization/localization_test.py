@@ -1,5 +1,3 @@
-# v2 added variance value for check each radius if it is suitable
-
 import math
 import serial
 import numpy as np
@@ -18,7 +16,6 @@ def grad_f(x,  center):
     return np.array([[ 2*(x[0]-center[0][0]), 2*(x[1]-center[0][1]), 2*(x[2]-center[0][2]) ], 
                      [ 2*(x[0]-center[1][0]), 2*(x[1]-center[1][1]), 2*(x[2]-center[1][2]) ], 
                      [ 2*(x[0]-center[2][0]), 2*(x[1]-center[2][1]), 2*(x[2]-center[2][2]) ]])
-
 # 梯度下降找近似解
 def gradient_descent(X,  center,  r):
     esp = 1e-2
@@ -31,12 +28,10 @@ def gradient_descent(X,  center,  r):
         X = X-(9e-7)*dx
         if  np.sqrt(np.sum(dx**2)) < esp:
             break
-    
         print("iter {:d} done dx={:}".format(i,  dx))
         #  return [int(X[0]), int(X[1]), int(X[2])]
     # 2D
     return [int(X[0]), int(X[1]), int(X[2])]
-
 # 找變異數
 def find_variance(r0, r1, r2):
     r0 = np.asarray(r0)
@@ -48,34 +43,29 @@ def find_variance(r0, r1, r2):
     #  print(variance0, variance1, variance2)
     if variance0 > 300 or variance1 >300 or variance2>300:
         return True
-    
 #  Kalman Filter
 def custom_kalman1D(observations):
     #  假設你有一組一維的資料
-    #  初始化卡爾曼濾波器的參數
-    n = len(observations)
-    #  Process Noise
-    Q = 1e-5 
-    #  Measurement Noise
+    #  Initialize
+    n = len(observations)   # Process Noise
+    Q = 1e-5                # Measurement Noise
     R = 0.01**2
-    xhat = np.zeros(n)  #  估計值
-    P = np.zeros(n)  #  估計值的協方差
-    xhatminus = np.zeros(n)  #  預測值
-    Pminus = np.zeros(n)  #  預測值的協方差
-    K = np.zeros(n)  #  卡爾曼增益
-
+    xhat = np.zeros(n)  # 估計值
+    P = np.zeros(n)     # 估計值的協方差
+    xhatminus = np.zeros(n) # 預測值
+    Pminus = np.zeros(n)    # 預測值的協方差
+    K = np.zeros(n)         #  卡爾曼增益
     #  Init
     xhat[0] = observations[0]
     P[0] = 1.0
-    for k in range(1,  n):
-    #  Predict
+    for k in range(1, n):
+        #  Predict
         xhatminus[k] = xhat[k-1]
         Pminus[k] = P[k-1] + Q
         #  Update
         K[k] = Pminus[k] / (Pminus[k] + R)
         xhat[k] = xhatminus[k] + K[k] * (observations[k] - xhatminus[k])
         P[k] = (1 - K[k]) * Pminus[k]
-
     #  xhat=np.sum(xhat)/len(xhat)
     return xhat[-1]
     #  plt.figure()
@@ -86,41 +76,26 @@ def custom_kalman1D(observations):
 
 def main():
     #  定義錨點位置
-    #  center=[
-    #  [0, 0, 122], # r0
-    #  [0, 45, 176], # r1
-    #  [0, 90, 140]# r2
-    #  ]
-    #  center=[
-    #  [0, 0, 122], # r0
-    #  [260, 0, 176], # r1
-    #  [260+254, 0, 140]# r2
-    #  ]
+    # [x, y, z]
     center=[
-        [0, 0, 80], 
-        [72, 300, 92], 
-        [430, 232, 157]
+        [360, 360, 60], # Anchor 0
+        [385, 360, 60],     # Anchor 1
+        [373, 405, 0]      # Anchor 2
     ]
-
-    device_tag=serial.Serial("COM14",  115200)
-    #  draw a whole dark image
+    # device_tag=serial.Serial("COM14",  115200)
+    device_tag=None
+    # draw a whole dark image
     image = np.zeros((720, 720, 1),  np.uint8)
     # draw the centers
     for pos in center:
         cv2.circle(image, (pos[0], pos[1]), 5, 255, 0)
-        #  plt.plot(pos[0], pos[1], 'ro')
-
     # 畫格子
     for i in range(0, 0, 1):
-        #  plt.vlines(45.5*i, 0, 720)
-        #  plt.hlines(45.5*i, 0, 720)
         cv2.line(image, (50*i, 0), (50*i, 720), 255, 1)
         cv2.line(image, (0, 50*i), (720, 50*i), 255, 1)
     cv2.imshow("a", image)
     if cv2.waitKey(0) & 0xff ==ord('q'):
         return
-
-    
     # initial x, y 
     #  X=np.array([1, 1, 1])
     # 2D
@@ -132,9 +107,9 @@ def main():
     #  X=gradient_descent(X, center, r)
     #  print(X)
     #  print(f(X, center, r))
-    
     print("strat")
     # main procedure
+    '''
     while True:
         # copy an image from the original image
         current_img=image.copy()
@@ -190,7 +165,6 @@ def main():
                         r2.append(r_temp)
                 except:
                     continue
-
             #  form there store's numbers ,  convert it into numpy
             if find_variance(r0, r1, r2):
                 continue
@@ -241,3 +215,7 @@ def main():
         # plot
         #  plt.plot(tag_position[0], tag_position[1], 'go')
         #  plt.show()
+        '''
+
+if __name__ == '__main__':
+    main()

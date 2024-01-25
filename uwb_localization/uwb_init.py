@@ -22,6 +22,10 @@ class UWBInit(Node):
         self.mode_sub_
         # Publisher
         self.pose_pub_ = self.create_publisher(Vector3, 'uwb_distance', 10)
+        # Reset Serial
+        self.serial_uwb0.reset_input_buffer()
+        self.serial_uwb1.reset_input_buffer()
+        self.serial_uwb2.reset_input_buffer()
         
     def mode_callback(self, msg):
         # Receive Msg

@@ -68,54 +68,39 @@ def custom_kalman1D(observations):
         P[k] = (1 - K[k]) * Pminus[k]
     #  xhat=np.sum(xhat)/len(xhat)
     return xhat[-1]
-    #  plt.figure()
-    #  plt.plot(observations,  'r-',  label='Original Data')
-    #  plt.plot(xhat,  'b-',  label='Filtered Data')
-    #  plt.legend()
-    #  plt.show()
 
 def main():
-    #  定義錨點位置
+    # 定義錨點位置
     # [x, y, z]
     center=[
-        [360, 360, 60], # Anchor 0
+        [360, 360, 60],     # Anchor 0
         [385, 360, 60],     # Anchor 1
-        [373, 405, 0]      # Anchor 2
+        [373, 405, 0]       # Anchor 2
     ]
     # device_tag=serial.Serial("COM14",  115200)
     device_tag=None
     # draw a whole dark image
     image = np.zeros((720, 720, 1),  np.uint8)
-    # draw the centers
+    # draw the Anchor Position
     for pos in center:
         cv2.circle(image, (pos[0], pos[1]), 5, 255, 0)
-    # 畫格子
+    # Draw Grid
     for i in range(0, 0, 1):
         cv2.line(image, (50*i, 0), (50*i, 720), 255, 1)
         cv2.line(image, (0, 50*i), (720, 50*i), 255, 1)
     cv2.imshow("a", image)
+    # Close Image
     if cv2.waitKey(0) & 0xff ==ord('q'):
         return
-    # initial x, y 
-    #  X=np.array([1, 1, 1])
-    # 2D
-    #  X=np.array([1, 1])
-
-    # test area
-    #  r=[390, 266, 371]
-    #  r=[500, 233, 450]
-    #  X=gradient_descent(X, center, r)
-    #  print(X)
-    #  print(f(X, center, r))
-    print("strat")
+    
     # main procedure
-    '''
+    print("strat")
     while True:
         # copy an image from the original image
         current_img=image.copy()
         # put tag_pos into temp list
         tag_position=[]
-        X=np.array([1, 1, 1])
+        X = np.array([1, 1, 1])
         # 原本預計找多個近似值X再求平均，但太耗時
         while len(tag_position)!=1:
             # initial circle radus
@@ -128,10 +113,7 @@ def main():
             while len(r0)<10 or len(r1)<10 or len(r2)<10:
                 # 從COM取資料
                 result=device_tag.readline()
-                # 解碼資料
                 result=result.decode()
-                # print(result)
-                # print(len(result))
                 # 確保資料完整
                 if len(result)!=13:
                     continue
@@ -141,11 +123,6 @@ def main():
                     anchor_index=int(result[0])
                     # 取與其的距離
                     r_temp=float(result[3:])
-                    # ok
-                    #  r_temp=r_temp* ((1+  -(np.log(r_temp/15))  )*55)
-                    # test
-                    #  r_temp=r_temp*70
-                    #  r_temp=r_temp*( 1+abs((r_temp/10)**2))*70
                     # 公尺變公分
                     r_temp=r_temp*100
                     if r_temp<0.0 and r_temp>700:
@@ -169,34 +146,28 @@ def main():
             if find_variance(r0, r1, r2):
                 continue
 
-            #  r0=np.sum(r0)/10
-            #  r1=np.sum(r1)/10
-            #  r2=np.sum(r2)/10
             # 卡爾曼濾波器找平滑
             r0=custom_kalman1D(r0)
             r1=custom_kalman1D(r1)
             r2=custom_kalman1D(r2)
             # 轉成int 因為opencv畫圖只能用int
-            r=np.array([r0,  r1,  r2]).astype(int)
+            r=np.array([r0, r1, r2]).astype(int)
             print("r="+str(r))
             # find local minimum x, y to fit the equtions
             try:
                 # 找近似值X
-                X=gradient_descent(X,  center,  r)
-                #  X=sympy_solve_equtions(X, center, r)
+                X = gradient_descent(X, center, r)
             except:
                 continue
-            #  if X[2]>220:
-            #      continue
-            print("x="+str(X))
+            print("x= "+str(X))
             tag_position.append(X)
             
         # when tag_pos list is 10 ,  and calc average tag_pos
         #  print(tag_position)
         # 原本預計找多個近似值X再求平均，但太耗時
-        tag_position=np.asarray(tag_position)
-        tag_position=np.sum(tag_position, axis=0)/1
-        tag_position=tag_position.astype(int).reshape((3, ))
+        tag_position = np.asarray(tag_position)
+        tag_position = np.sum(tag_position, axis=0)/1
+        tag_position = tag_position.astype(int).reshape((3, ))
  
         # using kalman filter
         #  tag_position=Kalman1D(tag_position)
@@ -209,13 +180,9 @@ def main():
             cv2.line(current_img, center_pos[0:2], tag_position[0:2], 255, 1)            
             cv2.putText(current_img,  str("{:.1f}".format(np.sqrt(np.sum((center_pos-tag_position)**2)))) , np.array((center_pos[0:2]+tag_position[0:2])/2).astype(int), cv2.FONT_HERSHEY_SIMPLEX, 0.8, 255)
         cv2.imshow("a", current_img)
+
         if cv2.waitKey(1) & 0xff == ord('q'):
             break
-
-        # plot
-        #  plt.plot(tag_position[0], tag_position[1], 'go')
-        #  plt.show()
-        '''
 
 if __name__ == '__main__':
     main()

@@ -8,12 +8,13 @@ from std_msgs.msg import String
 
 class UWBInit(Node):
 
-    baudRate = 112500
+    baudRate = 115200
     distList = []
     # Serial Port
-    serial_uwb0 = serial.Serial('/dev/ttyACM1', baudRate, timeout=1)
-    serial_uwb1 = serial.Serial('/dev/ttyACM2', baudRate, timeout=1)
-    serial_uwb2 = serial.Serial('/dev/ttyACM0', baudRate, timeout=1)
+    serial_uwb0 = serial.Serial('/dev/ttyACM0', baudRate, timeout=1)
+    serial_uwb1 = serial.Serial('/dev/ttyACM1', baudRate, timeout=1)
+    serial_uwb2 = serial.Serial('/dev/ttyACM2', baudRate, timeout=1)
+    serial_arduino = serial.Serial('/dev/ttyACM3', baudRate, timeout=1)
     
     def __init__(self):
         super().__init__('uwb_init')
@@ -26,26 +27,29 @@ class UWBInit(Node):
         self.serial_uwb0.reset_input_buffer()
         self.serial_uwb1.reset_input_buffer()
         self.serial_uwb2.reset_input_buffer()
+        self.serial_arduino.reset_output_buffer()
         
     def mode_callback(self, msg):
-        # Receive Msg
-        robot_mode = msg.data
         # Receieve Dis Data
         dis_msgs = Vector3()
         self.get_logger().info('UWB_dist Start')
         try:
             while True:
                 i=0
+                self.serial_arduino.write(b'0\n')
                 dis_msgs.x = send_and_receive(i, self.serial_uwb0)
                 i=1
+                self.serial_arduino.write(b'1\n')
                 dis_msgs.y = send_and_receive(i, self.serial_uwb1)
                 i=2
+                self.serial_arduino.write(b'2\n')
                 dis_msgs.z = send_and_receive(i, self.serial_uwb2)
                 self.pose_pub_.publish(dis_msgs)
         except KeyboardInterrupt:
             self.serial_uwb0.close()
             self.serial_uwb1.close()
             self.serial_uwb2.close()
+            self.serial_arduino.close()
             print("Program terminated by user.")  
         
                 
@@ -56,10 +60,8 @@ def send_and_receive(uwbNum, serial_receive):
         data = serial_receive.readline()
         dis = data.decode('utf-8').strip()
         # print('dis=' + str(dis))
-        # print('No Data, Wating:'+str(uwbNum))
-        pass
+        print('No Data, Wating:'+str(uwbNum))
     return float(dis)
-        
 
 def main(args=None):
     rclpy.init(args=args)

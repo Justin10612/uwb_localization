@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'uwb_receiver = uwb_localization.uwb_init:main',
+            'uwb_localization = uwb_localization.localization:main'
         ],
     },
 )

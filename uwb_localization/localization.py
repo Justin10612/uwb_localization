@@ -10,7 +10,7 @@ from geometry_msgs.msg import Vector3
 
 class UwbLocalization(Node):
     # Constants
-    kDataCount = 5
+    kDataCount = 3
     # Dis
     r0 = []
     r1 = []
@@ -18,8 +18,8 @@ class UwbLocalization(Node):
     # Anchor Coordinate
     # [x,y,z]
     anchor0 = np.array([0, 0, 60])
-    anchor1 = np.array([30, 0, 60])
-    anchor2 = np.array([15, 45, 60])
+    anchor1 = np.array([16, 56, 60])
+    anchor2 = np.array([-16, 56, 60])
     # center=[
     #     [360, 360, 60],
     #     [385, 360, 60],     # Anchor 0
@@ -36,7 +36,7 @@ class UwbLocalization(Node):
 
     # main Loop    
     def dis_callback(self, msgs):
-        self.get_logger().info("Start_localization")
+        # self.get_logger().info("Start_localization")
         try:
             # Make sure there are ten dis_data.
             if len(self.r0)<self.kDataCount or len(self.r1)<self.kDataCount or len(self.r2)<self.kDataCount:
@@ -44,7 +44,7 @@ class UwbLocalization(Node):
                 self.r0.append(msgs.x*100)
                 self.r1.append(msgs.y*100)
                 self.r2.append(msgs.z*100)
-                print(len(self.r0))
+                # print(len(self.r0))
             else:
                 # Average the distance
                 d0 = np.mean(self.r0)
@@ -67,11 +67,10 @@ class UwbLocalization(Node):
                 # 使用 fsolve 求解
                 result = fsolve(equations, initial_guess)
                 # Result
-                print("Target Coordinate:", result)
-                tag_x = int(round(float(result[0]), 2))
-                tag_y = int(round(float(result[1]), 2))
-                tag_z = int(round(float(result[2]), 2))
-                cv2.circle(map_image, (360+tag_x, 360+tag_y), 10, (100, 255, 0), 1)
+                tag_pos = [int(round(float(result[0]), 2)), int(round(float(result[1]), 2))]
+                print("Target Coordinate:", tag_pos)
+                # tag_z = int(round(float(result[2]), 2))
+                cv2.circle(map_image, (360+tag_pos[0], 360+tag_pos[1]), 10, (100, 255, 0), 1)
                 # Clear Buffer
                 self.r0 = []
                 self.r1 = []

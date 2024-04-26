@@ -20,7 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'uwb_receiver = uwb_localization.uwb_init:main',
+            'uwb_receiver = uwb_localization.uwb_receiver:main',
             'uwb_localization = uwb_localization.localization:main'
         ],
     },

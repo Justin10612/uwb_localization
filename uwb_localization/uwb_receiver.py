@@ -66,14 +66,18 @@ class UWBReceiver(Node):
             print("Program terminated by user.")
 
 def send_and_receive(uwbNum, serial_receive):
-    data = serial_receive.readline()
-    dis = data.decode('utf-8').strip()
-    while(dis==''):
+    try:
         data = serial_receive.readline()
         dis = data.decode('utf-8').strip()
-        # print('dis=' + str(dis))
-        # print('No Data, Wating:'+str(uwbNum))
+        while(dis==''):
+            data = serial_receive.readline()
+            dis = data.decode('utf-8').strip()
+            # print('dis=' + str(dis))
+            # print('No Data, Wating:'+str(uwbNum))
+    except:
+        pass
     return float(dis)
+
 
 def main(args=None):
     rclpy.init(args=args)

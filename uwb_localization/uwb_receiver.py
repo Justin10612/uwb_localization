@@ -1,6 +1,7 @@
 import rclpy
 from rclpy.node import Node
 import serial
+import numpy as np
 
 from geometry_msgs.msg import Vector3
 from std_msgs.msg import String
@@ -18,6 +19,7 @@ class UWBReceiver(Node):
     serial_uwb0 = serial.Serial('/dev/ttyACM0', baudRate, timeout=1)
     serial_uwb1 = serial.Serial('/dev/ttyACM1', baudRate, timeout=1)
     serial_uwb2 = serial.Serial('/dev/ttyACM2', baudRate, timeout=1)
+
     
     def __init__(self):
         super().__init__('uwb_init')
@@ -74,9 +76,9 @@ def send_and_receive(uwbNum, serial_receive):
             dis = data.decode('utf-8').strip()
             # print('dis=' + str(dis))
             # print('No Data, Wating:'+str(uwbNum))
+        return float(dis)
     except:
         pass
-    return float(dis)
 
 
 def main(args=None):

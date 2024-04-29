@@ -1,6 +1,7 @@
 import rclpy
 from rclpy.node import Node
 import numpy as np
+
 import cv2
 from scipy.optimize import fsolve
 
@@ -14,26 +15,23 @@ class UwbLocalization(Node):
     r0 = []
     r1 = []
     r2 = []
+    tx = []
+    ty = []
     # Anchor Coordinate
     # [x,y,z]
     anchor0 = np.array([0, 0, 60])
     anchor1 = np.array([16, 56, 60])
     anchor2 = np.array([-16, 56, 60])
-    # center=[
-    #     [360, 360, 60],
-    #     [385, 360, 60],     # Anchor 0
-    #     [373, 405, 60]     # Anchor 1
-    #            # Anchor 2
-    # ]
-    initial_guess = np.array([50, 50, 60])
+    # initail guess
+    last_guess = np.array([100, 100, 60])
 
     def __init__(self):
-        super().__init__('uwb_localization')
+        super().__init__('d_localization')
         # Subscriber
         self.dis_sub_ = self.create_subscription(Vector3, 'uwb_distance', self.dis_callback, 10)
         self.dis_sub_
         # Publisher
-        self.pose_pub_ = self.create_publisher(Vector3, 'uwb_distance', 10)
+        self.pose_pub_ = self.create_publisher(Vector3, 'human_pose', 10)
 
     # main Loop    
     def dis_callback(self, msgs):
@@ -67,16 +65,27 @@ class UwbLocalization(Node):
                     eq2 = (x - self.anchor1[0])**2 + (y - self.anchor1[1])**2 + (z - self.anchor1[2])**2 - d1**2
                     eq3 = (x - self.anchor2[0])**2 + (y - self.anchor2[1])**2 + (z - self.anchor2[2])**2 - d2**2
                     return [eq1, eq2, eq3]
-                # # 初始猜測值
-                
+                # 初始猜測值
+                initial_guess = np.array([100, 100, 60])
                 # 使用 fsolve 求解
-                result = fsolve(equations, self.initial_guess, col_deriv=1)
+                result = fsolve(equations, initial_guess)
                 # Result
-                tag_pos = np.array([int(round(float(result[0]), 2)), int(round(float(result[1]), 2)), int(round(float(result[2]), 2))])
-                # print("Target Coordinate:", tag_pos)
-                print(result)
+                tag_pos = np.array([int(round(float(result[0]), 2)), 
+                                    int(round(float(result[1]), 2))])
+                if len(self.tx)<3 and len(self.ty)<3:
+                    self.tx.append(tag_pos[0])
+                    self.ty.append(tag_pos[1])
+                else:
+                    tag_pos[0] = np.median(self.tx, axis=0)
+                    tag_pos[1] = np.median(self.ty, axis=0)
+                    self.tx = []
+                    self.ty = []
+                # self.last_guess = np.array([tag_pos[0]+np.random.randint(-20, 20), 
+                #                             tag_pos[1]+np.random.randint(-20, 20),
+                #                             60])
+                print(tag_pos)
                 # tag_z = int(round(float(result[2]), 2))
-                cv2.circle(map_image, (360+tag_pos[0], 360+tag_pos[1]), 5, (100, 0 , 100), -1)
+                cv2.circle(map_image, (360-tag_pos[0], 360+tag_pos[1]), 5, (100, 50 , 100), -1)
                 # Clear Buffer
                 self.r0 = []
                 self.r1 = []
@@ -84,7 +93,6 @@ class UwbLocalization(Node):
                 cv2.imshow("Map", map_image)
                 cv2.waitKey(1)
                 # Update Initial Guess
-                self.initial_guess = tag_pos
         except KeyboardInterrupt:
             cv2.destroyAllWindows()
 

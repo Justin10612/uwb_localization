@@ -21,7 +21,8 @@ setup(
     entry_points={
         'console_scripts': [
             'uwb_receiver = uwb_localization.uwb_receiver:main',
-            'uwb_localization = uwb_localization.localization:main'
+            '3d_localization = uwb_localization.localization:main',
+            'hyperbola_localization = uwb_localization.hyperbola_localization:main'
         ],
     },
 )

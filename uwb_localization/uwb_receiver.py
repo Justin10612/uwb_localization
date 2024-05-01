@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 import serial
 import numpy as np
+import time
 
 from geometry_msgs.msg import Vector3
 from std_msgs.msg import String
@@ -10,7 +11,7 @@ class custom_kalman1D:
   def __init__(self):
     n = 10
     self.Q = 1e-5  # 過程噪聲協方差
-    self.R = 0.01**2  # 觀測噪聲協方差
+    self.R = 0.07**2  # 觀測噪聲協方差
     self.xhat = np.zeros(n)  # 估計值
     self.xhat = [0,0]
     self.P = np.zeros(n)  # 估計值的協方差
@@ -48,6 +49,7 @@ class UWBReceiver(Node):
   a2_kalman = custom_kalman1D()
 
   baudRate = 115200
+  delayTime = 0.005
   d0 = []
   d1 = []
   d2 = []
@@ -57,10 +59,10 @@ class UWBReceiver(Node):
   last_1 = 0.0
   last_2 = 0.0  
   # Serial Port
-  serial_uwb0 = serial.Serial('/dev/ttyACM0', baudRate, timeout=1)
-  serial_uwb1 = serial.Serial('/dev/ttyACM1', baudRate, timeout=1)
-  serial_uwb2 = serial.Serial('/dev/ttyACM2', baudRate, timeout=1)
-
+  serial_uwb0 = serial.Serial('/dev/ttyACM1', baudRate, timeout=1)
+  serial_uwb1 = serial.Serial('/dev/ttyACM2', baudRate, timeout=1)
+  serial_uwb2 = serial.Serial('/dev/ttyACM3', baudRate, timeout=1)
+  serial_arduino = serial.Serial('/dev/ttyACM0', baudRate, timeout=1)
     
   def __init__(self):
     super().__init__('uwb_init')
@@ -73,6 +75,7 @@ class UWBReceiver(Node):
     self.serial_uwb0.reset_input_buffer()
     self.serial_uwb1.reset_input_buffer()
     self.serial_uwb2.reset_input_buffer()
+    self.serial_arduino.reset_output_buffer()
 
   def mode_callback(self, msg):
     # Receieve Dis Data
@@ -80,30 +83,21 @@ class UWBReceiver(Node):
     self.get_logger().info('UWB_dist Start')
     try:
       while True:
-        i=0
-        dis_anchor0 = send_and_receive(i, self.serial_uwb0)*100
-        if dis_anchor0<= 0:
-            dis_msgs.x = self.last_0
-        else:
-            dis_anchor0 = self.a0_kalman.renew_and_getdata(dis_anchor0)
-            dis_msgs.x = dis_anchor0
-            self.last_0 = dis_anchor0
-        i=1
-        dis_anchor1 = send_and_receive(i, self.serial_uwb1)*100
-        if dis_anchor1<= 0:
-            dis_msgs.y = self.last_1
-        else:
-            dis_anchor1 = self.a1_kalman.renew_and_getdata(dis_anchor1)
-            dis_msgs.y = dis_anchor1
-            self.last_1 = dis_anchor1
-        i=2
-        dis_anchor2 = send_and_receive(i, self.serial_uwb2)*100
-        if dis_anchor2 <= 0:
-            dis_msgs.z = self.last_2
-        else:
-            dis_anchor2 = self.a2_kalman.renew_and_getdata(dis_anchor2)
-            dis_msgs.z = dis_anchor2
-            self.last_2 = dis_anchor2
+        r0 = send_and_receive(0, self.serial_uwb0)
+        if r0 is not None:
+            self.serial_arduino.write(b'1\n')
+            time.sleep(self.delayTime)
+        dis_msgs.x = r0
+        r1 = send_and_receive(1, self.serial_uwb1)
+        if r1 is not None:
+            self.serial_arduino.write(b'2\n')
+            time.sleep(self.delayTime)
+        dis_msgs.y = r1
+        r2 = send_and_receive(2, self.serial_uwb2)
+        if r2 is not None:
+            self.serial_arduino.write(b'0\n')
+            time.sleep(self.delayTime)
+        dis_msgs.z = r2
         self.pose_pub_.publish(dis_msgs)
     except KeyboardInterrupt:
       self.serial_uwb0.close()
@@ -112,17 +106,15 @@ class UWBReceiver(Node):
       print("Program terminated by user.")
 
 def send_and_receive(uwbNum, serial_receive):
-  try:
-    data = serial_receive.readline()
-    dis = data.decode('utf-8').strip()
-    while(dis==''):
-        data = serial_receive.readline()
-        dis = data.decode('utf-8').strip()
-        # print('dis=' + str(dis))
-        # print('No Data, Wating:'+str(uwbNum))
-    return float(dis)
-  except:
-    pass
+  data = serial_receive.readline()
+  dis = data.decode('utf-8').strip()
+  # print(str(uwbNum) +'=' + str(dis))
+  while(dis==''):
+      data = serial_receive.readline()
+      dis = data.decode('utf-8').strip()
+      print('Wating:'+str(uwbNum))
+      pass
+  return float(dis)*100 if data else None
 
 def main(args=None):
     rclpy.init(args=args)

@@ -38,52 +38,40 @@ class UwbLocalization(Node):
     def dis_callback(self, msgs):
       # self.get_logger().info("Start_localization")
       try:
-        # Make sure there are ten dis_data.
-        if len(self.r0)<self.kDataCount or len(self.r1)<self.kDataCount or len(self.r2)<self.kDataCount:
-          # meter to center meter
-          self.r0.append(msgs.x)
-          self.r1.append(msgs.y)
-          self.r2.append(msgs.z)
-          # print(len(self.r0))
-        else:
-          # Average the distance
-          # d0 = np.mean(self.r0)
-          # d1 = np.mean(self.r1)
-          # d2 = np.mean(self.r2)
-          d0 = msgs.x
-          d1 = msgs.y
-          d2 = msgs.z
-          r = np.array([d0, d1, d2]).astype(int)
-          # draw the Anchor Position
-          map_image = np.zeros((720, 720, 3), np.uint8)
-          # map_image[:] = (128, 128, 128)
-          cv2.putText(map_image, 'A0 = '+str(round(d0, 2)), (360+self.anchor0[0], 300+self.anchor0[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
-          cv2.putText(map_image, 'A1 = '+str(round(d1, 2)), (280-self.anchor1[0], 420+self.anchor1[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
-          cv2.putText(map_image, 'A2 = '+str(round(d2, 2)), (360-self.anchor2[0], 420+self.anchor2[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
-          cv2.circle(map_image, (360+self.anchor0[0], 360+self.anchor0[1]), 2, (255,255,255), 0)
-          cv2.circle(map_image, (360-self.anchor1[0], 360+self.anchor1[1]), 2, (255,255,255), 0)
-          cv2.circle(map_image, (360-self.anchor2[0], 360+self.anchor2[1]), 2, (255,255,255), 0)
-          cv2.circle(map_image, (360+self.anchor0[0], 360+self.anchor0[1]), int(d0), (255,0,10), 0)
-          cv2.circle(map_image, (360-self.anchor1[0], 360+self.anchor1[1]), int(d1), (0,255,10), 0)
-          cv2.circle(map_image, (360-self.anchor2[0], 360+self.anchor2[1]), int(d2), (0,10,255), 0)
-          # Find coordinate
-          try:
-            self.initial_guess=gradient_descent(self.initial_guess, self.anchor, r)
-          except:
-            pass
-          # Result
-          tag_pos = np.array([int(round(float(self.initial_guess[0]), 2)), 
-                              int(round(float(self.initial_guess[1]), 2))])
-          print(tag_pos)
-          # tag_z = int(round(float(result[2]), 2))
-          cv2.circle(map_image, (360-tag_pos[0], 360+tag_pos[1]), 5, (100, 50 , 100), -1)
-          # Clear Buffer
-          self.r0 = []
-          self.r1 = []
-          self.r2 = []
-          cv2.imshow("Map", map_image)
-          cv2.waitKey(1)
-          # Update Initial Guess
+        d0 = msgs.x
+        d1 = msgs.y
+        d2 = msgs.z
+        r = np.array([d0, d1, d2]).astype(int)
+        # draw the Anchor Position
+        map_image = np.zeros((720, 720, 3), np.uint8)
+        # map_image[:] = (128, 128, 128)
+        cv2.putText(map_image, 'A0 = '+str(round(d0, 2)), (360+self.anchor0[0], 300+self.anchor0[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
+        cv2.putText(map_image, 'A1 = '+str(round(d1, 2)), (280-self.anchor1[0], 420+self.anchor1[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
+        cv2.putText(map_image, 'A2 = '+str(round(d2, 2)), (360-self.anchor2[0], 420+self.anchor2[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
+        cv2.circle(map_image, (360+self.anchor0[0], 360+self.anchor0[1]), 2, (255,255,255), 0)
+        cv2.circle(map_image, (360-self.anchor1[0], 360+self.anchor1[1]), 2, (255,255,255), 0)
+        cv2.circle(map_image, (360-self.anchor2[0], 360+self.anchor2[1]), 2, (255,255,255), 0)
+        cv2.circle(map_image, (360+self.anchor0[0], 360+self.anchor0[1]), int(d0), (255,0,10), 0)
+        cv2.circle(map_image, (360-self.anchor1[0], 360+self.anchor1[1]), int(d1), (0,255,10), 0)
+        cv2.circle(map_image, (360-self.anchor2[0], 360+self.anchor2[1]), int(d2), (0,10,255), 0)
+        # Find coordinate
+        try:
+          self.initial_guess=gradient_descent(self.initial_guess, self.anchor, r)
+        except:
+          pass
+        # Result
+        tag_pos = np.array([int(round(float(self.initial_guess[0]), 2)), 
+                            int(round(float(self.initial_guess[1]), 2))])
+        print(tag_pos)
+        # tag_z = int(round(float(result[2]), 2))
+        cv2.circle(map_image, (360-tag_pos[0], 360+tag_pos[1]), 5, (100, 50 , 100), -1)
+        # Clear Buffer
+        self.r0 = []
+        self.r1 = []
+        self.r2 = []
+        cv2.imshow("Map", map_image)
+        cv2.waitKey(1)
+        # Update Initial Guess
       except KeyboardInterrupt:
         cv2.destroyAllWindows()
 

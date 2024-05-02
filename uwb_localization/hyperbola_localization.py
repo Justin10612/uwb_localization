@@ -15,9 +15,9 @@ class HyperbolaLocalization(Node):
     r1 = []
     r2 = []
     # Anchor Coordinate
-    anchor0 = np.array([0, 0, 60])
-    anchor1 = np.array([16, 56, 60])
-    anchor2 = np.array([-16, 56, 60])
+    anchor0 = np.array([0, -56, 80])
+    anchor1 = np.array([16, 0, 60])
+    anchor2 = np.array([-16, 0, 60])
 
     def __init__(self):
         super().__init__('hyperbola_localization')
@@ -34,9 +34,9 @@ class HyperbolaLocalization(Node):
             # Make sure there are ten dis_data.
             if len(self.r0)<self.kDataCount or len(self.r1)<self.kDataCount or len(self.r2)<self.kDataCount:
                 # meter to center meter
-                self.r0.append(msgs.x*100)
-                self.r1.append(msgs.y*100)
-                self.r2.append(msgs.z*100)
+                self.r0.append(msgs.x)
+                self.r1.append(msgs.y)
+                self.r2.append(msgs.z)
                 # print(len(self.r0))
             else:
                 # Average the distance

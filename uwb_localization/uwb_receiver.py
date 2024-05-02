@@ -8,10 +8,12 @@ from geometry_msgs.msg import Vector3
 from std_msgs.msg import String
 
 class custom_kalman1D:
-  def __init__(self):
+  def __init__(self, Q, R):
     n = 10
-    self.Q = 1e-5  # 過程噪聲協方差
-    self.R = 0.07**2  # 觀測噪聲協方差
+    # self.Q = 1e-5  # 過程噪聲協方差
+    # self.R = 0.01**2  # 觀測噪聲協方差
+    self.Q = Q  # 過程噪聲協方差
+    self.R = R  # 觀測噪聲協方差
     self.xhat = np.zeros(n)  # 估計值
     self.xhat = [0,0]
     self.P = np.zeros(n)  # 估計值的協方差
@@ -23,7 +25,7 @@ class custom_kalman1D:
     self.K = np.zeros(n)  # 卡爾曼增益
     self.K =[0]
     self.xhat[0] = 0.0
-    self.P[0] = 1.0
+    self.P[0] = 100.0
 
   def renew_and_getdata(self, raw_data):
     # 預測
@@ -44,12 +46,12 @@ class custom_kalman1D:
 
 class UWBReceiver(Node):
 
-  a0_kalman = custom_kalman1D()
-  a1_kalman = custom_kalman1D()
-  a2_kalman = custom_kalman1D()
+  a0_kalman = custom_kalman1D(Q=1e-4, R=0.05**2)
+  a1_kalman = custom_kalman1D(Q=1e-5, R=0.01**2)
+  a2_kalman = custom_kalman1D(Q=1e-5, R=0.01**2)
 
   baudRate = 115200
-  delayTime = 0.005
+  delayTime = 0.025
   d0 = []
   d1 = []
   d2 = []
@@ -62,7 +64,7 @@ class UWBReceiver(Node):
   serial_uwb0 = serial.Serial('/dev/ttyACM1', baudRate, timeout=1)
   serial_uwb1 = serial.Serial('/dev/ttyACM2', baudRate, timeout=1)
   serial_uwb2 = serial.Serial('/dev/ttyACM3', baudRate, timeout=1)
-  serial_arduino = serial.Serial('/dev/ttyACM0', baudRate, timeout=1)
+  serial_arduino = serial.Serial('/dev/ttyACM0', 230400, timeout=1)
     
   def __init__(self):
     super().__init__('uwb_init')
@@ -78,6 +80,10 @@ class UWBReceiver(Node):
     self.serial_arduino.reset_output_buffer()
 
   def mode_callback(self, msg):
+    # self.serial_uwb0.reset_input_buffer()
+    # self.serial_uwb1.reset_input_buffer()
+    # self.serial_uwb2.reset_input_buffer()
+    self.serial_arduino.reset_output_buffer()
     # Receieve Dis Data
     dis_msgs = Vector3()
     self.get_logger().info('UWB_dist Start')
@@ -85,16 +91,20 @@ class UWBReceiver(Node):
       while True:
         r0 = send_and_receive(0, self.serial_uwb0)
         if r0 is not None:
+            # dis_msgs.y = r0
+            r0 = self.a0_kalman.renew_and_getdata(r0)
             self.serial_arduino.write(b'1\n')
             time.sleep(self.delayTime)
         dis_msgs.x = r0
         r1 = send_and_receive(1, self.serial_uwb1)
         if r1 is not None:
+            r1 = self.a1_kalman.renew_and_getdata(r1)
             self.serial_arduino.write(b'2\n')
             time.sleep(self.delayTime)
         dis_msgs.y = r1
         r2 = send_and_receive(2, self.serial_uwb2)
         if r2 is not None:
+            r2 = self.a2_kalman.renew_and_getdata(r2)
             self.serial_arduino.write(b'0\n')
             time.sleep(self.delayTime)
         dis_msgs.z = r2

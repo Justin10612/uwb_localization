@@ -55,7 +55,7 @@ class UwbLocalization(Node):
     initial_guess = np.array([1, 100, 10])
 
     def __init__(self):
-      super().__init__('d_localization')
+      super().__init__('uwb_localization')
       # Subscriber
       self.dis_sub_ = self.create_subscription(Vector3, 'uwb_distance', self.dis_callback, 10)
       self.dis_sub_
@@ -102,7 +102,7 @@ class UwbLocalization(Node):
         # Publish
         pose_msgs.x = float(distance)
         pose_msgs.y = float(angle)
-        # pose_msgs.z = float(0)
+        pose_msgs.z = 1.0
         self.pose_pub_.publish(pose_msgs)
         # Draw
         cv2.putText(map_image, 'Distance = '+str(distance), (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)

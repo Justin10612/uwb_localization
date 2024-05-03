@@ -5,7 +5,7 @@ import numpy as np
 import time
 
 from geometry_msgs.msg import Vector3
-from std_msgs.msg import String
+from std_msgs.msg import String, Bool
 
 class custom_kalman1D:
   def __init__(self, Q, R):
@@ -73,6 +73,7 @@ class UWBReceiver(Node):
     self.mode_sub_
     # Publisher
     self.pose_pub_ = self.create_publisher(Vector3, 'uwb_distance', 10)
+    self.target_state_pub_ = self.create_publisher(Bool, 'target_status', 10)
     # Reset Serial
     self.serial_uwb0.reset_input_buffer()
     self.serial_uwb1.reset_input_buffer()
@@ -86,6 +87,7 @@ class UWBReceiver(Node):
     self.serial_arduino.reset_output_buffer()
     # Receieve Dis Data
     dis_msgs = Vector3()
+    status = Bool()
     self.get_logger().info('UWB_dist Start')
     try:
       while True:
@@ -109,6 +111,9 @@ class UWBReceiver(Node):
             time.sleep(self.delayTime)
         dis_msgs.z = r2
         self.pose_pub_.publish(dis_msgs)
+        #
+        status.data = True
+        self.target_state_pub_.publish(status)
     except KeyboardInterrupt:
       self.serial_uwb0.close()
       self.serial_uwb1.close()

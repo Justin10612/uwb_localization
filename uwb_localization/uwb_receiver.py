@@ -47,8 +47,8 @@ class custom_kalman1D:
 class UWBReceiver(Node):
 
   a0_kalman = custom_kalman1D(Q=1e-4, R=0.05**2)
-  a1_kalman = custom_kalman1D(Q=1e-5, R=0.01**2)
-  a2_kalman = custom_kalman1D(Q=1e-5, R=0.01**2)
+  a1_kalman = custom_kalman1D(Q=1e-5, R=0.05**2)
+  a2_kalman = custom_kalman1D(Q=1e-5, R=0.05**2)
 
   baudRate = 115200
   delayTime = 0.025

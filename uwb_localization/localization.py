@@ -43,11 +43,14 @@ class custom_kalman1D:
 
 
 class UwbLocalization(Node):
+    # Filter
+    xFilter = custom_kalman1D(Q=1e-2, R=0.05**2)
+    yFilter = custom_kalman1D(Q=1e-5, R=0.01**2)
     # Anchor Coordinate
     # [x,y,z]
-    anchor = np.array([[0, 0, 21],
+    anchor = np.array([[0, 0, 10],
                       [16, 56, 0],
-                      [-16, 56, 0]])
+                      [-15, 56, 0]])
     # initail guess
     initial_guess = np.array([1, 100, 10])
 
@@ -57,7 +60,7 @@ class UwbLocalization(Node):
       self.dis_sub_ = self.create_subscription(Vector3, 'uwb_distance', self.dis_callback, 10)
       self.dis_sub_
       # Publisher
-      self.pose_pub_ = self.create_publisher(Vector3, 'human_pose_distance', 10)
+      self.pose_pub_ = self.create_publisher(Vector3, 'human_pose', 10)
 
     # main Loop    
     def dis_callback(self, msgs):
@@ -74,9 +77,9 @@ class UwbLocalization(Node):
         cv2.putText(map_image, 'A0 = '+str(r[0]), (360+self.anchor[0][0], 300+self.anchor[0][1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
         cv2.putText(map_image, 'A1 = '+str(r[1]), (280-self.anchor[1][0], 420+self.anchor[1][1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
         cv2.putText(map_image, 'A2 = '+str(r[2]), (360-self.anchor[2][0], 420+self.anchor[2][1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
-        cv2.circle(map_image, (360+self.anchor[0][0], 360+self.anchor[0][1]), 2, (255,255,255), 0)
-        cv2.circle(map_image, (360-self.anchor[1][0], 360+self.anchor[1][1]), 2, (255,255,255), 0)
-        cv2.circle(map_image, (360-self.anchor[2][0], 360+self.anchor[2][1]), 2, (255,255,255), 0)
+        cv2.circle(map_image, (360+self.anchor[0][0], 360+self.anchor[0][1]), 3, (255,255,255), 0)
+        cv2.circle(map_image, (360-self.anchor[1][0], 360+self.anchor[1][1]), 3, (255,255,255), 0)
+        cv2.circle(map_image, (360-self.anchor[2][0], 360+self.anchor[2][1]), 3, (255,255,255), 0)
         cv2.circle(map_image, (360+self.anchor[0][0], 360+self.anchor[0][1]), r[0], (205,153,0), 0)
         cv2.circle(map_image, (360-self.anchor[1][0], 360+self.anchor[1][1]), r[1], (0,255,10), 0)
         cv2.circle(map_image, (360-self.anchor[2][0], 360+self.anchor[2][1]), r[2], (0,10,255), 0)
@@ -89,16 +92,23 @@ class UwbLocalization(Node):
         tag_pos = np.array([int(round(self.initial_guess[0], 2)), 
                             int(round(self.initial_guess[1], 2)),
                             int(round(self.initial_guess[2], 2))])
-        
         print(tag_pos)
-        pose_msgs.x = float(tag_pos[0])
-        pose_msgs.y = float(tag_pos[1])
-        pose_msgs.z = float(tag_pos[2])
+        cv2.arrowedLine(map_image, (360+self.anchor[0][0], 360+self.anchor[0][1]), (360-tag_pos[0], 360+tag_pos[1]), (8, 255, 0), 2, 2, 0, 0.05)
+        # Filter
+        # tag_pos[0] = self.xFilter.renew_and_getdata(tag_pos[0])
+        # tag_pos[1] = self.yFilter.renew_and_getdata(tag_pos[1])
+        distance = round(np.sqrt(tag_pos[0]**2+tag_pos[1]**2), 2)
+        angle = round(calculate_angle(tag_pos, distance))
+        # Publish
+        pose_msgs.x = float(distance)
+        pose_msgs.y = float(angle)
+        # pose_msgs.z = float(0)
         self.pose_pub_.publish(pose_msgs)
         # Draw
-        cv2.putText(map_image, 'Distance = '+str(np.sqrt(tag_pos[0]**2+tag_pos[1]**2)), (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
-        cv2.arrowedLine(map_image, (360+self.anchor[0][0], 360+self.anchor[0][1]), (360-tag_pos[0], 360+tag_pos[1]), (8, 255, 255), 2, 2, 0, 0.05)
-        cv2.circle(map_image, (360-tag_pos[0], 360+tag_pos[1]), 5, (0, 255 , 100), -1)
+        cv2.putText(map_image, 'Distance = '+str(distance), (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
+        cv2.putText(map_image, 'Angle = '+str(angle), (100, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
+        cv2.arrowedLine(map_image, (360+self.anchor[0][0], 360+self.anchor[0][1]), (360-tag_pos[0], 360+tag_pos[1]), (255, 255, 255), 2, 2, 0, 0.05)
+        cv2.circle(map_image, (360-tag_pos[0], 360+tag_pos[1]), 5, (100, 0 , 100), -1)
         cv2.imshow("Map", map_image)
         cv2.waitKey(1)
       except KeyboardInterrupt:
@@ -121,23 +131,26 @@ def gradient_descent(X, center, r):
   esp=1e-2
   N=3000
   for i in range(N):
-    fx = f(X, center,r) 
+    fx = f(X, center, r) 
     grad = grad_f(X, center)
     dx = np.dot(grad.T, fx)
-    # print(dx)
-    # # 檢查 dx 是否導致 Z 值為負，如果是，將其設置為一個非常大的值
-    # if dx[2] < 0:
-    #     X[2] = np.abs(X[2])
-    # X = X - (9e-7)*dx
-    X[0] = X[0] - (6e-6)*dx[0]
-    X[1] = X[1] - (6e-6)*dx[1]
-    X[2] = X[2] - (5e-6)*dx[2]
+    # print("dx : {:2f}, dy : {:2f}, dz : {:2f}".format(dx[0], dx[1], dx[2]))
+    X[0] = X[0] - (3e-6)*dx[0]
+    X[1] = X[1] - (1e-6)*dx[1]
+    X[2] = X[2] - (4e-6)*dx[2]
     if  np.sqrt(np.sum(dx**2)) < esp:
         break
     # print("y : {:2f}, z : {:2f}".format(X[1], X[2]))
   # print("iter : {:d}".format(i))
+  # print("x : {:2f}, y : {:2f}, z : {:2f}".format(X[0], X[1], X[2]))
   # return [int(X[0]), int(X[1]), int(X[2])]
   return [X[0], X[1], X[2]]
+
+def calculate_angle(target_pose, distance):
+  target_pose = np.array(target_pose)
+  cosTheta = (target_pose[1]**2 + distance**2 - target_pose[0]**2)/(2*target_pose[1]*distance)
+  # print("Cos Theta = " + str(cosTheta))
+  return (np.arccos(cosTheta)/np.pi)*180
 
 def main(args=None):
     rclpy.init(args=args)

@@ -44,15 +44,15 @@ class custom_kalman1D:
 
 class UwbLocalization(Node):
     # Filter
-    xFilter = custom_kalman1D(Q=1e-4, R=0.06**2)
-    yFilter = custom_kalman1D(Q=1e-5, R=0.05**2)
+    xFilter = custom_kalman1D(Q=2e-3, R=0.06**2)
+    yFilter = custom_kalman1D(Q=2e-3, R=0.05**2)
     # Anchor Coordinate
     # [x,y,z]
-    anchor = np.array([[0, 0, 10],
-                      [16, 56, 0],
-                      [-15, 56, 0]])
+    anchor = np.array([[0, -56, 10],
+                      [16, 0, 0],
+                      [-15, 0, 0]])
     # initail guess
-    initial_guess = np.array([1, 100, 10])
+    initial_guess = np.array([1, 160, 10])
 
     def __init__(self):
       super().__init__('uwb_localization')
@@ -95,7 +95,7 @@ class UwbLocalization(Node):
                             int(round(self.initial_guess[1], 2)),
                             int(round(self.initial_guess[2], 2))])
         # print(tag_pos)
-        cv2.arrowedLine(map_image, (360+self.anchor[0][0], 360+self.anchor[0][1]), (360-tag_pos[0], 360+tag_pos[1]), (8, 255, 0), 2, 2, 0, 0.05)
+        cv2.arrowedLine(map_image, (360, 360), (360-tag_pos[0], 360+tag_pos[1]), (8, 255, 0), 2, 2, 0, 0.05)
         log_msgs.linear.x = float(tag_pos[0])
         log_msgs.linear.y = float(tag_pos[1])
         # Filter
@@ -104,9 +104,9 @@ class UwbLocalization(Node):
         distance = round(np.sqrt(tag_pos[0]**2+tag_pos[1]**2), 2)
         angle = round(calculate_angle(tag_pos, distance), 1)
         # Publish
-        # pose_msgs.x = distance/100.0
-        # pose_msgs.y = angle
-        # pose_msgs.z = 1.0
+        pose_msgs.x = distance/100.0
+        pose_msgs.y = angle
+        pose_msgs.z = 1.0
         log_msgs.angular.x = float(tag_pos[0])
         log_msgs.angular.y = float(tag_pos[1])
         self.pose_pub_.publish(pose_msgs)
@@ -114,7 +114,7 @@ class UwbLocalization(Node):
         # Draw
         cv2.putText(map_image, 'Distance = '+str(distance), (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
         cv2.putText(map_image, 'Angle = '+str(angle), (100, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
-        cv2.arrowedLine(map_image, (360+self.anchor[0][0], 360+self.anchor[0][1]), (360-tag_pos[0], 360+tag_pos[1]), (255, 255, 255), 2, 2, 0, 0.05)
+        cv2.arrowedLine(map_image, (360, 360), (360-tag_pos[0], 360+tag_pos[1]), (255, 255, 255), 2, 2, 0, 0.05)
         cv2.circle(map_image, (360-tag_pos[0], 360+tag_pos[1]), 5, (100, 0 , 100), -1)
         cv2.imshow("Map", map_image)
         cv2.waitKey(1)

@@ -81,9 +81,9 @@ class UWBReceiver(Node):
     self.serial_arduino.reset_output_buffer()
 
   def mode_callback(self, msg):
-    # self.serial_uwb0.reset_input_buffer()
-    # self.serial_uwb1.reset_input_buffer()
-    # self.serial_uwb2.reset_input_buffer()
+    self.serial_uwb0.reset_input_buffer()
+    self.serial_uwb1.reset_input_buffer()
+    self.serial_uwb2.reset_input_buffer()
     self.serial_arduino.reset_output_buffer()
     # Receieve Dis Data
     dis_msgs = Vector3()
@@ -124,10 +124,11 @@ def send_and_receive(uwbNum, serial_receive):
   data = serial_receive.readline()
   dis = data.decode('utf-8').strip()
   # print(str(uwbNum) +'=' + str(dis))
+  i=0
   while(dis==''):
       data = serial_receive.readline()
       dis = data.decode('utf-8').strip()
-      print('Wating:'+str(uwbNum))
+      # print('Wating:'+str(uwbNum))
       pass
   return float(dis)*100 if data else None
 

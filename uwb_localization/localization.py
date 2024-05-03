@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 import numpy as np
 import cv2
-from geometry_msgs.msg import Vector3
+from geometry_msgs.msg import Vector3, Twist
 
 
 class custom_kalman1D:
@@ -44,8 +44,8 @@ class custom_kalman1D:
 
 class UwbLocalization(Node):
     # Filter
-    xFilter = custom_kalman1D(Q=1e-2, R=0.05**2)
-    yFilter = custom_kalman1D(Q=1e-5, R=0.01**2)
+    xFilter = custom_kalman1D(Q=1e-4, R=0.06**2)
+    yFilter = custom_kalman1D(Q=1e-5, R=0.05**2)
     # Anchor Coordinate
     # [x,y,z]
     anchor = np.array([[0, 0, 10],
@@ -61,14 +61,16 @@ class UwbLocalization(Node):
       self.dis_sub_
       # Publisher
       self.pose_pub_ = self.create_publisher(Vector3, 'human_pose', 10)
+      self.log_pub_ = self.create_publisher(Twist, 'log_data', 10)
 
     # main Loop    
     def dis_callback(self, msgs):
       # self.get_logger().info("Start_localization")
       pose_msgs = Vector3()
+      log_msgs = Twist()
       try:
         d0 = 0.9766*msgs.x + 35.253
-        d1 = 0.9738*msgs.y  + 26.868
+        d1 = 0.9738*msgs.y + 26.868
         d2 = 0.9387*msgs.z + 30.364
         r = np.array([d0, d1, d2]).astype(int)
         # draw the Anchor Position
@@ -92,18 +94,23 @@ class UwbLocalization(Node):
         tag_pos = np.array([int(round(self.initial_guess[0], 2)), 
                             int(round(self.initial_guess[1], 2)),
                             int(round(self.initial_guess[2], 2))])
-        print(tag_pos)
+        # print(tag_pos)
         cv2.arrowedLine(map_image, (360+self.anchor[0][0], 360+self.anchor[0][1]), (360-tag_pos[0], 360+tag_pos[1]), (8, 255, 0), 2, 2, 0, 0.05)
+        log_msgs.linear.x = float(tag_pos[0])
+        log_msgs.linear.y = float(tag_pos[1])
         # Filter
-        # tag_pos[0] = self.xFilter.renew_and_getdata(tag_pos[0])
-        # tag_pos[1] = self.yFilter.renew_and_getdata(tag_pos[1])
+        tag_pos[0] = self.xFilter.renew_and_getdata(tag_pos[0])
+        tag_pos[1] = self.yFilter.renew_and_getdata(tag_pos[1])
         distance = round(np.sqrt(tag_pos[0]**2+tag_pos[1]**2), 2)
-        angle = round(calculate_angle(tag_pos, distance))
+        angle = round(calculate_angle(tag_pos, distance), 1)
         # Publish
-        pose_msgs.x = float(distance)
-        pose_msgs.y = float(angle)
-        pose_msgs.z = 1.0
+        # pose_msgs.x = distance/100.0
+        # pose_msgs.y = angle
+        # pose_msgs.z = 1.0
+        log_msgs.angular.x = float(tag_pos[0])
+        log_msgs.angular.y = float(tag_pos[1])
         self.pose_pub_.publish(pose_msgs)
+        self.log_pub_.publish(log_msgs)
         # Draw
         cv2.putText(map_image, 'Distance = '+str(distance), (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
         cv2.putText(map_image, 'Angle = '+str(angle), (100, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
@@ -149,8 +156,10 @@ def gradient_descent(X, center, r):
 def calculate_angle(target_pose, distance):
   target_pose = np.array(target_pose)
   cosTheta = (target_pose[1]**2 + distance**2 - target_pose[0]**2)/(2*target_pose[1]*distance)
-  # print("Cos Theta = " + str(cosTheta))
-  return (np.arccos(cosTheta)/np.pi)*180
+  if target_pose[0]>0:
+    return np.arccos(cosTheta)
+  else:
+    return -np.arccos(cosTheta)
 
 def main(args=None):
     rclpy.init(args=args)

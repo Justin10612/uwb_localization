@@ -46,6 +46,8 @@ class UwbLocalization(Node):
     # Filter
     xFilter = custom_kalman1D(Q=1e-3, R=0.06**2)
     yFilter = custom_kalman1D(Q=2e-3, R=0.05**2)
+    distanFilter = custom_kalman1D(Q=1e-4, R=0.05**2)
+    angleFilter = custom_kalman1D(Q=1e-3, R=0.05**2)
     # Anchor Coordinate
     # [x,y,z]
     anchor = np.array([[0, -56, 20],
@@ -96,19 +98,23 @@ class UwbLocalization(Node):
                             int(round(self.initial_guess[2], 2))])
         # print(tag_pos)
         cv2.arrowedLine(map_image, (360, 360), (360-tag_pos[0], 360+tag_pos[1]), (8, 255, 0), 2, 2, 0, 0.05)
-        log_msgs.linear.x = float(tag_pos[0])
-        log_msgs.linear.y = float(tag_pos[1])
+        # log_msgs.linear.x = float(tag_pos[0])
+        # log_msgs.linear.y = float(tag_pos[1])
         # Filter
-        tag_pos[0] = self.xFilter.renew_and_getdata(tag_pos[0])
-        tag_pos[1] = self.yFilter.renew_and_getdata(tag_pos[1])
+        # tag_pos[0] = self.xFilter.renew_and_getdata(tag_pos[0])
+        # tag_pos[1] = self.yFilter.renew_and_getdata(tag_pos[1])
         distance = round(np.sqrt(tag_pos[0]**2+tag_pos[1]**2), 2)
         angle = round(calculate_angle(tag_pos, distance), 1)
+        log_msgs.linear.x = float(distance)
+        log_msgs.linear.y = float(angle)
+        distance = self.distanFilter.renew_and_getdata(distance)
+        angle = self.angleFilter.renew_and_getdata(angle)
         # Publish
         pose_msgs.x = distance/100.0
         pose_msgs.y = angle
         pose_msgs.z = 1.0
-        log_msgs.angular.x = float(tag_pos[0])
-        log_msgs.angular.y = float(tag_pos[1])
+        log_msgs.angular.x = float(distance)
+        log_msgs.angular.y = float(angle)
         self.pose_pub_.publish(pose_msgs)
         self.log_pub_.publish(log_msgs)
         # Draw

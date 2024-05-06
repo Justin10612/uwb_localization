@@ -31,7 +31,7 @@ class custom_kalman1D:
     # xhat_minus[k] = xhat[k-1]
     self.xhat_minus[0]=self.xhat[0]
     # Pminus[k] = P[k-1] + Q
-    self.Pminus[0]=self.P[0]+self.Q
+    self.Pminus[0]=self.P[0]*0.633+self.Q
     # 更新
     # K[k] = Pminus[k] / (Pminus[k] + R)
     self.K[0]=self.Pminus[0]/(self.Pminus[0]+self.R)
@@ -44,9 +44,9 @@ class custom_kalman1D:
 
 class UwbLocalization(Node):
     # Filter
-    xFilter = custom_kalman1D(Q=1e-3, R=0.06**2)
-    yFilter = custom_kalman1D(Q=2e-3, R=0.05**2)
-    distanFilter = custom_kalman1D(Q=1e-4, R=0.05**2)
+    # xFilter = custom_kalman1D(Q=1e-3, R=0.06**2)
+    # yFilter = custom_kalman1D(Q=2e-3, R=0.05**2)
+    distanFilter = custom_kalman1D(9e-4, R=0.05**2)
     angleFilter = custom_kalman1D(Q=1e-3, R=0.05**2)
     # Anchor Coordinate
     # [x,y,z]
@@ -77,10 +77,11 @@ class UwbLocalization(Node):
         r = np.array([d0, d1, d2]).astype(int)
         # draw the Anchor Position
         map_image = np.zeros((720, 720, 3), np.uint8)
-        # map_image[:] = (128, 128, 128)
+        # 
         cv2.putText(map_image, 'A0 = '+str(r[0]), (360+self.anchor[0][0], 300+self.anchor[0][1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
         cv2.putText(map_image, 'A1 = '+str(r[1]), (280-self.anchor[1][0], 420+self.anchor[1][1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
         cv2.putText(map_image, 'A2 = '+str(r[2]), (360-self.anchor[2][0], 420+self.anchor[2][1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
+        
         cv2.circle(map_image, (360+self.anchor[0][0], 360+self.anchor[0][1]), 3, (255,255,255), 0)
         cv2.circle(map_image, (360-self.anchor[1][0], 360+self.anchor[1][1]), 3, (255,255,255), 0)
         cv2.circle(map_image, (360-self.anchor[2][0], 360+self.anchor[2][1]), 3, (255,255,255), 0)
@@ -119,7 +120,7 @@ class UwbLocalization(Node):
         self.log_pub_.publish(log_msgs)
         # Draw
         cv2.putText(map_image, 'Distance = '+str(distance), (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
-        cv2.putText(map_image, 'Angle = '+str((angle/3.14)*180), (100, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
+        cv2.putText(map_image, 'Angle = '+str(angle), (100, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
         cv2.arrowedLine(map_image, (360, 360), (360-tag_pos[0], 360+tag_pos[1]), (255, 255, 255), 2, 2, 0, 0.05)
         cv2.circle(map_image, (360-tag_pos[0], 360+tag_pos[1]), 5, (100, 0 , 100), -1)
         cv2.imshow("Map", map_image)
@@ -148,9 +149,9 @@ def gradient_descent(X, center, r):
     grad = grad_f(X, center)
     dx = np.dot(grad.T, fx)
     # print("dx : {:2f}, dy : {:2f}, dz : {:2f}".format(dx[0], dx[1], dx[2]))
-    X[0] = X[0] - (3e-6)*dx[0]
+    X[0] = X[0] - (1e-6)*dx[0]
     X[1] = X[1] - (1e-6)*dx[1]
-    X[2] = X[2] - (4e-6)*dx[2]
+    X[2] = X[2] - (0.5e-6)*dx[2]
     if  np.sqrt(np.sum(dx**2)) < esp:
         break
     # print("y : {:2f}, z : {:2f}".format(X[1], X[2]))
@@ -163,9 +164,9 @@ def calculate_angle(target_pose, distance):
   target_pose = np.array(target_pose)
   cosTheta = (target_pose[1]**2 + distance**2 - target_pose[0]**2)/(2*target_pose[1]*distance)
   if target_pose[0]>0:
-    return np.arccos(cosTheta)
+    return (np.arccos(cosTheta)/3.14159)*180
   else:
-    return -np.arccos(cosTheta)
+    return (-np.arccos(cosTheta)/3.14159)*180
 
 
 def main(args=None):

@@ -29,10 +29,11 @@ class custom_kalman1D:
 
   def renew_and_getdata(self, raw_data):
     # 預測
+    dt = 0.633
     # xhatminus[k] = xhat[k-1]
     self.xhatminus[0]=self.xhat[0]
     # Pminus[k] = P[k-1] + Q
-    self.Pminus[0]=self.P[0]+self.Q
+    self.Pminus[0]=dt*self.P[0]+self.Q
     # 更新
     # K[k] = Pminus[k] / (Pminus[k] + R)
     self.K[0]=self.Pminus[0]/(self.Pminus[0]+self.R)
@@ -46,9 +47,9 @@ class custom_kalman1D:
 
 class UWBReceiver(Node):
 
-  a0_kalman = custom_kalman1D(Q=1e-4, R=0.05**2)
-  a1_kalman = custom_kalman1D(Q=1e-5, R=0.05**2)
-  a2_kalman = custom_kalman1D(Q=1e-5, R=0.05**2)
+  a0_kalman = custom_kalman1D(Q=9.5e-4, R=0.056**2)
+  a1_kalman = custom_kalman1D(Q=3e-4, R=0.08**2)
+  a2_kalman = custom_kalman1D(Q=1e-3, R=0.05**2)
 
   baudRate = 115200
   delayTime = 0.025

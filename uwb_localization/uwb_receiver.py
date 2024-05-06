@@ -4,7 +4,7 @@ import serial
 import numpy as np
 import time
 
-from geometry_msgs.msg import Vector3
+from geometry_msgs.msg import Vector3, Twist
 from std_msgs.msg import String, Bool
 
 class custom_kalman1D:
@@ -74,6 +74,7 @@ class UWBReceiver(Node):
     # Publisher
     self.pose_pub_ = self.create_publisher(Vector3, 'uwb_distance', 10)
     self.target_state_pub_ = self.create_publisher(Bool, 'target_status', 10)
+    self.log_pub_ = self.create_publisher(Twist, 'uwb_log_data', 10)
     # Reset Serial
     self.serial_uwb0.reset_input_buffer()
     self.serial_uwb1.reset_input_buffer()
@@ -86,6 +87,7 @@ class UWBReceiver(Node):
     self.serial_uwb2.reset_input_buffer()
     self.serial_arduino.reset_output_buffer()
     # Receieve Dis Data
+    log_msgs = Twist()
     dis_msgs = Vector3()
     status = Bool()
     self.get_logger().info('UWB_dist Start')
@@ -94,22 +96,29 @@ class UWBReceiver(Node):
         r0 = send_and_receive(0, self.serial_uwb0)
         if r0 is not None:
             # dis_msgs.y = r0
+            log_msgs.linear.x = r0
             r0 = self.a0_kalman.renew_and_getdata(r0)
+            log_msgs.angular.x = r0
             self.serial_arduino.write(b'1\n')
             time.sleep(self.delayTime)
         dis_msgs.x = r0
         r1 = send_and_receive(1, self.serial_uwb1)
         if r1 is not None:
+            log_msgs.linear.y = r1
             r1 = self.a1_kalman.renew_and_getdata(r1)
+            log_msgs.angular.y = r1
             self.serial_arduino.write(b'2\n')
             time.sleep(self.delayTime)
         dis_msgs.y = r1
         r2 = send_and_receive(2, self.serial_uwb2)
         if r2 is not None:
+            log_msgs.linear.z = r2
             r2 = self.a2_kalman.renew_and_getdata(r2)
+            log_msgs.angular.z = r2
             self.serial_arduino.write(b'0\n')
             time.sleep(self.delayTime)
         dis_msgs.z = r2
+        self.log_pub_.publish(log_msgs)
         self.pose_pub_.publish(dis_msgs)
         #
         status.data = True

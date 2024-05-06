@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 import numpy as np
 import cv2
+import csv
 from geometry_msgs.msg import Vector3, Twist
 
 
@@ -41,18 +42,17 @@ class custom_kalman1D:
     self.xhat[0]=self.xhat[1]
     return self.xhat[0]
 
-
 class UwbLocalization(Node):
     # Filter
-    xFilter = custom_kalman1D(Q=2e-3, R=0.06**2)
+    xFilter = custom_kalman1D(Q=1e-3, R=0.06**2)
     yFilter = custom_kalman1D(Q=2e-3, R=0.05**2)
     # Anchor Coordinate
     # [x,y,z]
-    anchor = np.array([[0, -56, 10],
+    anchor = np.array([[0, -56, 20],
                       [16, 0, 0],
-                      [-15, 0, 0]])
+                      [-16, 0, 0]])
     # initail guess
-    initial_guess = np.array([1, 160, 10])
+    initial_guess = np.array([1, 110, 10])
 
     def __init__(self):
       super().__init__('uwb_localization')
@@ -61,7 +61,7 @@ class UwbLocalization(Node):
       self.dis_sub_
       # Publisher
       self.pose_pub_ = self.create_publisher(Vector3, 'human_pose', 10)
-      self.log_pub_ = self.create_publisher(Twist, 'log_data', 10)
+      self.log_pub_ = self.create_publisher(Twist, 'pose_log_data', 10)
 
     # main Loop    
     def dis_callback(self, msgs):
@@ -113,7 +113,7 @@ class UwbLocalization(Node):
         self.log_pub_.publish(log_msgs)
         # Draw
         cv2.putText(map_image, 'Distance = '+str(distance), (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
-        cv2.putText(map_image, 'Angle = '+str(angle), (100, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
+        cv2.putText(map_image, 'Angle = '+str((angle/3.14)*180), (100, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
         cv2.arrowedLine(map_image, (360, 360), (360-tag_pos[0], 360+tag_pos[1]), (255, 255, 255), 2, 2, 0, 0.05)
         cv2.circle(map_image, (360-tag_pos[0], 360+tag_pos[1]), 5, (100, 0 , 100), -1)
         cv2.imshow("Map", map_image)
@@ -160,6 +160,7 @@ def calculate_angle(target_pose, distance):
     return np.arccos(cosTheta)
   else:
     return -np.arccos(cosTheta)
+
 
 def main(args=None):
     rclpy.init(args=args)

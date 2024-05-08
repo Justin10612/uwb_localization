@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 import numpy as np
 import cv2
-import csv
+import time
 from geometry_msgs.msg import Vector3, Twist
 
 
@@ -26,12 +26,12 @@ class custom_kalman1D:
     self.xhat[0] = 0.0
     self.P[0] = 100.0
 
-  def renew_and_getdata(self, raw_data):
+  def renew_and_getdata(self, raw_data, dt):
     # 預測
     # xhat_minus[k] = xhat[k-1]
     self.xhat_minus[0]=self.xhat[0]
     # Pminus[k] = P[k-1] + Q
-    self.Pminus[0]=self.P[0]*0.633+self.Q
+    self.Pminus[0]=self.P[0]+self.Q
     # 更新
     # K[k] = Pminus[k] / (Pminus[k] + R)
     self.K[0]=self.Pminus[0]/(self.Pminus[0]+self.R)
@@ -55,6 +55,8 @@ class UwbLocalization(Node):
                       [-16, 0, 0]])
     # initail guess
     initial_guess = np.array([1, 110, 10])
+    # time
+    last_time = 0
 
     def __init__(self):
       super().__init__('uwb_localization')
@@ -71,6 +73,10 @@ class UwbLocalization(Node):
       pose_msgs = Vector3()
       log_msgs = Twist()
       try:
+        # time
+        dt = time.time() - self.last_time
+        self.last_time = time.time()
+        # get data
         d0 = 0.9766*msgs.x + 35.253
         d1 = 0.9738*msgs.y + 26.868
         d2 = 0.9387*msgs.z + 30.364
@@ -81,7 +87,6 @@ class UwbLocalization(Node):
         cv2.putText(map_image, 'A0 = '+str(r[0]), (360+self.anchor[0][0], 300+self.anchor[0][1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
         cv2.putText(map_image, 'A1 = '+str(r[1]), (280-self.anchor[1][0], 420+self.anchor[1][1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
         cv2.putText(map_image, 'A2 = '+str(r[2]), (360-self.anchor[2][0], 420+self.anchor[2][1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
-        
         cv2.circle(map_image, (360+self.anchor[0][0], 360+self.anchor[0][1]), 3, (255,255,255), 0)
         cv2.circle(map_image, (360-self.anchor[1][0], 360+self.anchor[1][1]), 3, (255,255,255), 0)
         cv2.circle(map_image, (360-self.anchor[2][0], 360+self.anchor[2][1]), 3, (255,255,255), 0)
@@ -98,7 +103,7 @@ class UwbLocalization(Node):
                             int(round(self.initial_guess[1], 2)),
                             int(round(self.initial_guess[2], 2))])
         # print(tag_pos)
-        cv2.arrowedLine(map_image, (360, 360), (360-tag_pos[0], 360+tag_pos[1]), (8, 255, 0), 2, 2, 0, 0.05)
+        # cv2.arrowedLine(map_image, (360, 360), (360-tag_pos[0], 360+tag_pos[1]), (8, 255, 0), 2, 2, 0, 0.05)
         # log_msgs.linear.x = float(tag_pos[0])
         # log_msgs.linear.y = float(tag_pos[1])
         # Filter
@@ -108,8 +113,8 @@ class UwbLocalization(Node):
         angle = round(calculate_angle(tag_pos, distance), 1)
         log_msgs.linear.x = float(distance)
         log_msgs.linear.y = float(angle)
-        distance = self.distanFilter.renew_and_getdata(distance)
-        angle = self.angleFilter.renew_and_getdata(angle)
+        distance = self.distanFilter.renew_and_getdata(distance, dt)
+        angle = self.angleFilter.renew_and_getdata(angle, dt)
         # Publish
         pose_msgs.x = distance/100.0
         pose_msgs.y = angle

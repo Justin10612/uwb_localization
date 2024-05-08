@@ -29,11 +29,10 @@ class custom_kalman1D:
 
   def renew_and_getdata(self, raw_data):
     # 預測
-    dt = 0.633
     # xhatminus[k] = xhat[k-1]
     self.xhatminus[0]=self.xhat[0]
     # Pminus[k] = P[k-1] + Q
-    self.Pminus[0]=dt*self.P[0]+self.Q
+    self.Pminus[0]=self.P[0]+self.Q
     # 更新
     # K[k] = Pminus[k] / (Pminus[k] + R)
     self.K[0]=self.Pminus[0]/(self.Pminus[0]+self.R)

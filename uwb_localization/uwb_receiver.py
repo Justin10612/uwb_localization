@@ -61,10 +61,10 @@ class UWBReceiver(Node):
   last_1 = 0.0
   last_2 = 0.0  
   # Serial Port
-  serial_uwb0 = serial.Serial('/dev/ttyACM1', baudRate, timeout=1)
-  serial_uwb1 = serial.Serial('/dev/ttyACM2', baudRate, timeout=1)
-  serial_uwb2 = serial.Serial('/dev/ttyACM3', baudRate, timeout=1)
-  serial_arduino = serial.Serial('/dev/ttyACM0', 230400, timeout=1)
+  serial_uwb0 = serial.Serial('/dev/ttyACM0', baudRate, timeout=1)
+  serial_uwb1 = serial.Serial('/dev/ttyACM1', baudRate, timeout=1)
+  serial_uwb2 = serial.Serial('/dev/ttyACM2', baudRate, timeout=1)
+  serial_arduino = serial.Serial('/dev/ttyACM3', 230400, timeout=1)
     
   def __init__(self):
     super().__init__('uwb_init')

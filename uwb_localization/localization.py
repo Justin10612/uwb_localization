@@ -102,13 +102,7 @@ class UwbLocalization(Node):
         tag_pos = np.array([int(round(self.initial_guess[0], 2)), 
                             int(round(self.initial_guess[1], 2)),
                             int(round(self.initial_guess[2], 2))])
-        # print(tag_pos)
-        # cv2.arrowedLine(map_image, (360, 360), (360-tag_pos[0], 360+tag_pos[1]), (8, 255, 0), 2, 2, 0, 0.05)
-        # log_msgs.linear.x = float(tag_pos[0])
-        # log_msgs.linear.y = float(tag_pos[1])
         # Filter
-        # tag_pos[0] = self.xFilter.renew_and_getdata(tag_pos[0])
-        # tag_pos[1] = self.yFilter.renew_and_getdata(tag_pos[1])
         distance = round(np.sqrt(tag_pos[0]**2+tag_pos[1]**2), 2)
         angle = round(calculate_angle(tag_pos, distance), 1)
         log_msgs.linear.x = float(distance)
@@ -124,8 +118,8 @@ class UwbLocalization(Node):
         self.pose_pub_.publish(pose_msgs)
         self.log_pub_.publish(log_msgs)
         # Draw
-        cv2.putText(map_image, 'Distance = '+str(distance), (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
-        cv2.putText(map_image, 'Angle = '+str(angle), (100, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
+        cv2.putText(map_image, 'Distance = '+str(round(distance, 2)), (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
+        cv2.putText(map_image, 'Angle = '+str(round(angle, 2)), (100, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
         cv2.arrowedLine(map_image, (360, 360), (360-tag_pos[0], 360+tag_pos[1]), (255, 255, 255), 2, 2, 0, 0.05)
         cv2.circle(map_image, (360-tag_pos[0], 360+tag_pos[1]), 5, (100, 0 , 100), -1)
         cv2.imshow("Map", map_image)
